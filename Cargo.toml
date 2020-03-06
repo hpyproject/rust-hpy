@@ -1,0 +1,18 @@
+[package]
+name = "hpy"
+version = "0.0.1"
+description = "Experimental bindings to Python using the HPy opaque handles"
+authors = ["Georges Racinet <georges.racinet@octobus.net"]
+readme = "README.md"
+edition = "2018"
+license = "MIT"
+keywords = [
+    "python",
+    "hpy",
+]
+homepage = "https://github.com/gracinet/rust-hpy"
+repository = "https://github.com/gracinet/rust-hpy.git"
+categories = ["api-bindings", "development-tools::ffi"]
+
+[dependencies]
+libc = "^0.2"
