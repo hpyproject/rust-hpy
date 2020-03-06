@@ -16,3 +16,8 @@ categories = ["api-bindings", "development-tools::ffi"]
 
 [dependencies]
 libc = "^0.2"
+
+
+[[example]]
+name = "pof"
+crate-type = ["cdylib"]
