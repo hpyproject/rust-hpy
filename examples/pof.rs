@@ -1,6 +1,6 @@
 use hpy::ffi::HPyContext;
 use hpy::ffi::*;
-use std::ptr;
+use std::{ptr, slice};
 
 #[no_mangle]
 unsafe extern "C" fn do_nothing_trampoline(
@@ -35,6 +35,48 @@ pub unsafe extern "C" fn do_nothing(
     *_out_trampoline = do_nothing_trampoline;
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn add_ints(
+    out_func: *mut *mut c_void,
+    _out_trampoline: *mut _HPy_CPyCFunction,
+) {
+    *out_func = add_ints_impl as *mut c_void;
+    *_out_trampoline = add_ints_trampoline;
+}
+
+#[no_mangle]
+unsafe extern "C" fn add_ints_trampoline(slf: *mut PyObject, args: *mut PyObject) -> *mut PyObject {
+    let ctx = _CTX_FOR_TRAMPOLINES;
+
+    ((*ctx).ctx_CallRealFunctionFromTrampoline)(
+        ctx,
+        slf,
+        args,
+        ptr::null_mut(),
+        add_ints_impl as *mut c_void,
+        HPy_METH_VARARGS,
+    )
+}
+
+#[no_mangle]
+unsafe extern "C" fn add_ints_impl(
+    ctx: HPyContext,
+    _slf: HPy,
+    args: *const HPy,
+    nargs: HPy_ssize_t,
+) -> HPy {
+    let args = slice::from_raw_parts(args, nargs as usize);
+    if nargs != 2 {
+        return HPy_NULL;
+    }
+    // XXX check for exceptions (same comment in HPyArg_Parse
+    // we don't need to make new handles, but still, in Rust we have to clone
+    // because HPy is not Copy
+    let a = ((*ctx).ctx_Long_AsLong)(ctx, args[0].clone());
+    let b = ((*ctx).ctx_Long_AsLong)(ctx, args[1].clone());
+    return ((*ctx).ctx_Long_FromLong)(ctx, a + b);
+}
+
 static mut _CTX_FOR_TRAMPOLINES: HPyContext = ptr::null_mut();
 
 #[no_mangle]
@@ -44,12 +86,19 @@ pub extern "C" fn HPyInit_pof(ctx: HPyContext) -> HPy {
         _CTX_FOR_TRAMPOLINES = ctx;
         static mut MODULE_DEF: HPyModuleDef = HPyModuleDef_INIT;
         MODULE_DEF.m_name = "pof\0".as_ptr() as *const c_char;
-        static mut METHODS: [HPyMethodDef; 2] = [
+        static mut METHODS: [HPyMethodDef; 3] = [
             HPyMethodDef {
                 ml_name: "do_nothing\0".as_ptr() as *const c_char,
                 ml_meth: Some(do_nothing),
                 ml_flags: HPy_METH_NOARGS,
                 ml_doc: "Really, do nothing\0".as_ptr() as *const c_char,
+            },
+            HPyMethodDef {
+                ml_name: "add_ints\0".as_ptr() as *const c_char,
+                ml_meth: Some(add_ints),
+                ml_flags: HPy_METH_VARARGS,
+                ml_doc: "Lots of infrastructure for an addition, demonstrates HPy_METH_VARARGS\0"
+                    .as_ptr() as *const c_char,
             },
             HPyMethodDef_END,
         ];

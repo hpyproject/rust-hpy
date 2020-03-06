@@ -23,6 +23,6 @@ def load(exmp_name):
 mod = load('pof')
 immediate_out("Testing a function call without arguments: ")
 assert mod.do_nothing() is None
-#print(mod.add_ints(5, 6))
+assert mod.add_ints(5, 6) == 11
 #print(mod.double(21))
 
