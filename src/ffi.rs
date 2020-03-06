@@ -64,3 +64,5 @@ pub const HPyModuleDef_INIT: HPyModuleDef = HPyModuleDef {
 pub fn HPy_IsNull(h: HPy) -> bool {
     h.0 == 0
 }
+
+pub const HPy_NULL: HPy = HPy(0);
