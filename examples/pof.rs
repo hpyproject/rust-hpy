@@ -77,6 +77,38 @@ unsafe extern "C" fn add_ints_impl(
     return ((*ctx).ctx_Long_FromLong)(ctx, a + b);
 }
 
+pub unsafe extern "C" fn double(
+    out_func: *mut *mut c_void,
+    _out_trampoline: *mut _HPy_CPyCFunction,
+) {
+    *out_func = double_impl as *mut c_void;
+    *_out_trampoline = double_trampoline;
+}
+
+#[no_mangle]
+unsafe extern "C" fn double_trampoline(slf: *mut PyObject, arg: *mut PyObject) -> *mut PyObject {
+    let ctx = _CTX_FOR_TRAMPOLINES;
+
+    ((*ctx).ctx_CallRealFunctionFromTrampoline)(
+        ctx,
+        slf,
+        arg,
+        ptr::null_mut(),
+        double_impl as *mut c_void,
+        HPy_METH_O,
+    )
+}
+
+
+#[no_mangle]
+unsafe extern "C" fn double_impl(
+    ctx: HPyContext,
+    _slf: HPy,
+    obj: HPy,
+) -> HPy {
+    ((*ctx).ctx_Number_Add)(ctx, obj.clone(), obj)
+}
+
 static mut _CTX_FOR_TRAMPOLINES: HPyContext = ptr::null_mut();
 
 #[no_mangle]
@@ -86,7 +118,7 @@ pub extern "C" fn HPyInit_pof(ctx: HPyContext) -> HPy {
         _CTX_FOR_TRAMPOLINES = ctx;
         static mut MODULE_DEF: HPyModuleDef = HPyModuleDef_INIT;
         MODULE_DEF.m_name = "pof\0".as_ptr() as *const c_char;
-        static mut METHODS: [HPyMethodDef; 3] = [
+        static mut METHODS: [HPyMethodDef; 4] = [
             HPyMethodDef {
                 ml_name: "do_nothing\0".as_ptr() as *const c_char,
                 ml_meth: Some(do_nothing),
@@ -98,6 +130,13 @@ pub extern "C" fn HPyInit_pof(ctx: HPyContext) -> HPy {
                 ml_meth: Some(add_ints),
                 ml_flags: HPy_METH_VARARGS,
                 ml_doc: "Lots of infrastructure for an addition, demonstrates HPy_METH_VARARGS\0"
+                    .as_ptr() as *const c_char,
+            },
+            HPyMethodDef {
+                ml_name: "double\0".as_ptr() as *const c_char,
+                ml_meth: Some(double),
+                ml_flags: HPy_METH_O,
+                ml_doc: "Demonstrates HPy_METH_O\0"
                     .as_ptr() as *const c_char,
             },
             HPyMethodDef_END,
